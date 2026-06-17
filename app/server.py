@@ -1,16 +1,18 @@
 from wsgiref.simple_server import make_server
 from jinja2 import Environment, FileSystemLoader
-import urllib.parse 
+import urllib.parse
 import hashlib
 import os
 import hmac
 import re
 from datetime import datetime
 
+
 class WebApp:
     """
     Aplicação Web baseada no padrão WSGI (Web Server Gateway Interface).
     """
+
     def __init__(self):
         """
         Inicializa a aplicação web configurando os bancos de dados na memória
@@ -31,7 +33,7 @@ class WebApp:
 
         if path == "/" and method == "GET":
             return self.render_home(environ, start_response)
-        
+
         # Static
         elif path.startswith("/static") and method == "GET":
             return self.static_server(environ, start_response)
@@ -61,7 +63,7 @@ class WebApp:
 
         else:
             return self.render_404(environ, start_response)
-    
+
     def _open_file(self, path):
         try:
             with open(path, "rb") as file:
@@ -82,14 +84,17 @@ class WebApp:
 
         if not full_path.startswith(base_dir) or not os.path.isfile(full_path):
             return self.render_404(environ, start_response)
-        
+
         mime_type, _ = mimetypes.guess_type(full_path)
         if mime_type is None:
             mime_type = "application/octet-stream"
-        
+
         body_bytes = self._open_file(full_path)
 
-        start_response("200 OK", [("Content-Type", mime_type), ("Content-Length", str(len(body_bytes)))])
+        start_response(
+            "200 OK",
+            [("Content-Type", mime_type), ("Content-Length", str(len(body_bytes)))],
+        )
         return [body_bytes]
 
     def _send_reply(self, start_response, text_html, status="200 OK"):
@@ -105,8 +110,10 @@ class WebApp:
         """
         start_response("302 Found", [("Location", location)])
         return [b""]
-    
-    def _render_template(self, start_response, template_name, context=None, status="200 OK"):
+
+    def _render_template(
+        self, start_response, template_name, context=None, status="200 OK"
+    ):
         """
         Método auxiliar para renderizar um template Jinja2 e enviar a resposta.
         """
@@ -117,11 +124,26 @@ class WebApp:
         html_string = template.render(**context)
         return self._send_reply(start_response, html_string, status=status)
 
+    def _parse_form(self, environ):
+        """
+        Método auxiliar para ler e decodificar dados de formulários POST.
+        """
+        try:
+            content_length = int(environ.get("CONTENT_LENGTH", 0))
+        except ValueError:
+            content_length = 0
+
+        request_body = environ["wsgi.input"].read(content_length).decode("utf-8")
+        return urllib.parse.parse_qs(request_body)
+
     def render_home(self, environ, start_response):
         """
         Renderiza e retorna a página inicial do site.
         """
-        return self._render_template(start_response, "index.html", )
+        return self._render_template(
+            start_response,
+            "index.html",
+        )
 
     def render_login_get(self, environ, start_response):
         """
@@ -133,9 +155,20 @@ class WebApp:
         """
         Processa as credenciais de login enviadas pelo usuário via método POST.
         """
+        form_data = self._parse_form(environ)
+        email = form_data.get("email", [""])[0].strip()
+        password = form_data.get("password", [""])[0]
+
+        user = self.users_db.get(email)
+        if user:
+            computed_hash = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), user["salt"], 100000)
+            # função segura que previne time attacks
+            if hmac.compare_digest(computed_hash, user["hash"]):
+                return self._redirect(start_response, "/dashboard")
+        
         context = {
             "error": "E-mail ou senha inválidos.",
-            "email": "usuario_teste@gmail.com"
+            "email": email
         }
         return self._render_template(start_response, "login.html", context, status="401 Unauthorized")
 
@@ -143,12 +176,33 @@ class WebApp:
         """
         Exibe a página com o formulário de cadastro de usuário.
         """
-        return self._send_reply(start_response, "<h1>Página de registro</h1>")
+        return self._render_template(start_response, "register.html")
 
     def handle_register_post(self, environ, start_response):
         """
         Processa os dados de criação de conta enviados pelo usuário via método POST."""
-        pass
+        form_data = self._parse_form(environ)
+
+        email = form_data.get("email", [""])[0].strip()
+        password = form_data.get("password", [""])[0]
+
+        if email in self.users_db:
+            context = {"error": "Este e-mail já está cadastrado.", "email": email}
+            return self._render_template(
+                start_response, "register.html", context, status="409 Conflict"
+            )
+
+        salt = os.urandom(16)
+        password_hash = hashlib.pbkdf2_hmac(
+            "sha512", password.encode("utf-8"), salt, 100000
+        )
+
+        self.users_db[email] = {"salt": salt, "hash": password_hash}
+
+        context = {"success": "Conta criada com sucesso! Você já pode fazer login."}
+        return self._render_template(
+            start_response, "register.html", context, status="201 Created"
+        )
 
     def render_dashboard(self, environ, start_response):
         """
@@ -175,6 +229,7 @@ class WebApp:
         return self._send_reply(
             start_response, "<h1>Erro 404 - Não Encontrado</h1>", "404 Not Found"
         )
+
 
 if __name__ == "__main__":
     app = WebApp()

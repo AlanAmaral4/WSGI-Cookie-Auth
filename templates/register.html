@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="/static/styles/style.css">
+    <title>Cadastro</title>
+</head>
+
+<body>
+    <header class="cabecalho">
+        <nav class="container">
+            <ul>
+                <li>
+                    <h1><strong><a href="/" class="titulo">🍪 Webdev Cookie</a></strong></h1>
+                </li>
+            </ul>
+            <ul>
+                <li>
+                    <button class="tema" id="theme-switch">Dark/Light</button>
+                </li>
+            </ul>
+        </nav>
+    </header>
+    <main class="auth-container">
+        <article>
+            <form action="/register" method="POST" class="formulario">
+                <h2 class="titulo">Criar Conta</h2>
+
+                {% if error %}
+                <p style="color: red; text-align: center;">{{ error }}</p>
+                {% endif %}
+
+                {% if success %}
+                <p style="color: green; text-align: center;">{{ success }}</p>
+                {% endif %}
+
+                <div class="div_form">
+                    <label for="email">E-mail:</label>
+                    <input type="email" name="email" id="email" required value="{{ email }}" {% if error %}
+                        aria-invalid="true" {% endif %}>
+                </div>
+                <div class="div_form">
+                    <label for="password">Senha:</label>
+                    <input type="password" name="password" required {% if error %} aria-invalid="true" {% endif %}>
+                </div>
+                <button type="submit">Cadastrar</button>
+                <p class="cadastro">Já tem conta? <a href="/login">Faça login</a></p>
+            </form>
+        </article>
+    </main>
+    <script>
+        const switchBtn = document.getElementById('theme-switch');
+        const docRoot = document.documentElement;
+
+        const prefferedTheme = localStorage.getItem('theme');
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const defaultTheme = prefferedTheme || (systemDark ? 'dark' : 'light');
+
+        docRoot.setAttribute('data-theme', defaultTheme);
+
+        switchBtn.addEventListener('click', () => {
+            const current = docRoot.getAttribute('data-theme');
+            const toggled = current === 'dark' ? 'light' : 'dark';
+            docRoot.setAttribute('data-theme', toggled);
+            localStorage.setItem('theme', toggled);
+        });
+    </script>
+
+</body>
+
+</html>

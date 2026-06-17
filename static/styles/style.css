@@ -1,0 +1,27 @@
+.cabecalho {
+    padding: 20px 0;
+
+    & .titulo {
+        text-decoration: none;
+        color: inherit;
+        font-size: 25px;
+    }
+}
+
+.auth-container {
+    max-width: 400px;
+    margin: 40px auto;
+
+    & .formulario {
+
+        & .titulo {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        & .cadastro {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+    }
+}

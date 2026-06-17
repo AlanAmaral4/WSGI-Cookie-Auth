@@ -1,25 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="/static/styles/login.css">
+    <link rel="stylesheet" href="/static/styles/style.css">
     <title>Login</title>
 </head>
 
 <body>
     <header class="cabecalho">
-        <nav>
+        <nav class="container">
             <ul>
                 <li>
-                    <button class="tema" id="theme-toggle">Dark/Light</button>
+                    <h1><strong><a href="/" class="titulo">🍪 Webdev Cookie</a></strong></h1>
+                </li>
+            </ul>
+            <ul>
+                <li>
+                    <button class="tema" id="theme-switch">Dark/Light</button>
                 </li>
             </ul>
         </nav>
     </header>
-    <main class="container">
+    <main class="auth-container">
         <article>
             <form action="/login" method="POST" class="formulario">
                 <h2 class="titulo">Login</h2>
@@ -44,19 +49,20 @@
         </article>
     </main>
     <script>
-        const themeToggle = document.getElementById('theme-toggle');
-        const htmlElement = document.documentElement;
+        const switchBtn = document.getElementById('theme-switch');
+        const docRoot = document.documentElement;
 
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            htmlElement.setAttribute('data-theme', savedTheme);
-        }
+        const prefferedTheme = localStorage.getItem('theme');
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const defaultTheme = prefferedTheme || (systemDark ? 'dark' : 'light');
+        
+        docRoot.setAttribute('data-theme', defaultTheme);
 
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = htmlElement.getAttribute('data-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            htmlElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
+        switchBtn.addEventListener('click', () => {
+            const current = docRoot.getAttribute('data-theme');
+            const toggled = current === 'dark' ? 'light' : 'dark';
+            docRoot.setAttribute('data-theme', toggled);
+            localStorage.setItem('theme', toggled);
         });
     </script>
 </body>

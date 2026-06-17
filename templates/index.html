@@ -1,18 +1,72 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-br">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <title>Hello world!</title>
+    <link rel="stylesheet" href="/static/styles/style.css">
+    <title>Webdev Cookie - Home</title>
 </head>
 
 <body>
+    <header class="cabecalho">
+        <nav class="container">
+            <ul>
+                <li>
+                    <h1><strong><a href="/" class="titulo">🍪 Webdev Cookie</a></strong></h1>
+                </li>
+            </ul>
+            <ul>
+                {% if email %}
+                <li>
+                    <a href="/dashboard">Dashboard</a>
+                </li>
+                <li>
+                    <a href="/admin">Admin</a>
+                </li>
+                <li>
+                    <form action="/logout" method="POST" style="margin: 0;">
+                        <button type="submit" class="outline">Sair</button>
+                    </form>
+                </li>
+                {% else %}
+                <li><a href="/login">Entrar</a></li>
+                <li><a href="/register" class="contrast">Cadastre-se</a></li>
+                {% endif %}
+                <li><button class="tema" id="theme-switch">Dark/Light</button></li>
+            </ul>
+        </nav>
+        <hr>
+    </header>
     <main class="container">
-        <h1>Hello world!</h1>
+        <article>
+            <h1>Bem-vindo ao Webdev Cookie!</h1>
+            {% if email %}
+            <p>Você está autenticado como: <strong>{{ email }}</strong></p>
+            {% else %}
+            <p>Faça login ou crie uma conta para acessar as áreas restritas.</p>
+            {% endif %}
+        </article>
     </main>
+    <script>
+        const switchBtn = document.getElementById('theme-switch');
+        const docRoot = document.documentElement;
+
+        const prefferedTheme = localStorage.getItem('theme');
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const defaultTheme = prefferedTheme || (systemDark ? 'dark' : 'light');
+        
+        docRoot.setAttribute('data-theme', defaultTheme);
+
+        switchBtn.addEventListener('click', () => {
+            const current = docRoot.getAttribute('data-theme');
+            const toggled = current === 'dark' ? 'light' : 'dark';
+            docRoot.setAttribute('data-theme', toggled);
+            localStorage.setItem('theme', toggled);
+        });
+    </script>
 </body>
 
 </html>
