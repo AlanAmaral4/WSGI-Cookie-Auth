@@ -1,6 +1,11 @@
 from wsgiref.simple_server import make_server
 from jinja2 import Environment, FileSystemLoader
-
+import urllib.parse 
+import hashlib
+import os
+import hmac
+import re
+from datetime import datetime
 
 class WebApp:
     """
@@ -26,6 +31,10 @@ class WebApp:
 
         if path == "/" and method == "GET":
             return self.render_home(environ, start_response)
+        
+        # Static
+        elif path.startswith("/static") and method == "GET":
+            return self.static_server(environ, start_response)
 
         # Login
         elif path == "/login" and method == "GET":
@@ -52,6 +61,36 @@ class WebApp:
 
         else:
             return self.render_404(environ, start_response)
+    
+    def _open_file(self, path):
+        try:
+            with open(path, "rb") as file:
+                return file.read()
+
+        except Exception as error:
+            print(f"Erro ao tentar abrir o arquivo {path}: {error}")
+            return b""
+
+    def static_server(self, environ, start_response):
+        import mimetypes
+
+        path = environ.get("PATH_INFO", "")
+        relative_path = path.lstrip("/")
+
+        base_dir = os.path.abspath("static")
+        full_path = os.path.abspath(relative_path)
+
+        if not full_path.startswith(base_dir) or not os.path.isfile(full_path):
+            return self.render_404(environ, start_response)
+        
+        mime_type, _ = mimetypes.guess_type(full_path)
+        if mime_type is None:
+            mime_type = "application/octet-stream"
+        
+        body_bytes = self._open_file(full_path)
+
+        start_response("200 OK", [("Content-Type", mime_type), ("Content-Length", str(len(body_bytes)))])
+        return [body_bytes]
 
     def _send_reply(self, start_response, text_html, status="200 OK"):
         """
@@ -67,33 +106,38 @@ class WebApp:
         start_response("302 Found", [("Location", location)])
         return [b""]
     
-    def _render_template(self, start_response, template_name, context=None):
+    def _render_template(self, start_response, template_name, context=None, status="200 OK"):
         """
         Método auxiliar para renderizar um template Jinja2 e enviar a resposta.
         """
         if context is None:
             context = {}
+
         template = self.env.get_template(template_name)
         html_string = template.render(**context)
-        return self._send_reply(start_response, html_string)
+        return self._send_reply(start_response, html_string, status=status)
 
     def render_home(self, environ, start_response):
         """
         Renderiza e retorna a página inicial do site.
         """
-        return self._render_template(start_response, "index.html")
+        return self._render_template(start_response, "index.html", )
 
     def render_login_get(self, environ, start_response):
         """
         Exibe a página com o formulário de login.
         """
-        return self._send_reply(start_response, "<h1>Página de Login</h1>")
+        return self._render_template(start_response, "login.html")
 
     def handle_login_post(self, environ, start_response):
         """
         Processa as credenciais de login enviadas pelo usuário via método POST.
         """
-        pass
+        context = {
+            "error": "E-mail ou senha inválidos.",
+            "email": "usuario_teste@gmail.com"
+        }
+        return self._render_template(start_response, "login.html", context, status="401 Unauthorized")
 
     def render_register_get(self, environ, start_response):
         """
