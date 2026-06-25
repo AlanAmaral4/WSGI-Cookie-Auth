@@ -10,16 +10,16 @@ Não há sistema de build, bundler ou dependências de frontend — tudo é HTML
 
 ## Comandos
 
-- Rodar o servidor: `python app/server.py` (sobe em `http://localhost:8000`)
+- Rodar o servidor: `python main.py` a partir da raiz do projeto (sobe em `http://localhost:8000`). Não rode de dentro de `app/`, senão o import `from app.server import WebApp` quebra.
 - Ambiente virtual já existe em `env/` (`env/bin/activate`); ative-o antes de instalar/rodar caso novas dependências sejam necessárias.
 - Não há testes, lint ou scripts de build configurados no projeto.
 
 ## Arquitetura
 
-- `app/server.py` — contém toda a aplicação: a classe `WebApp` é o app WSGI (`__call__` faz o roteamento manual por `PATH_INFO` + método HTTP). Não há framework de rotas; cada rota é um `elif` explícito dentro de `__call__`.
+- `app/server.py` — define a aplicação: a classe `WebApp` é o app WSGI (`__call__` faz o roteamento manual por `PATH_INFO` + método HTTP). Não há framework de rotas; cada rota é um `elif` explícito dentro de `__call__`.
 - `templates/` — templates Jinja2 (`index.html`, `login.html`, `register.html`, `dashboard.html`, `admin.html`), renderizados via `self.env` (`Environment(loader=FileSystemLoader("templates"), autoescape=True)`).
 - `static/` — assets estáticos (CSS), servidos pela própria `WebApp.static_server` (sem servidor estático dedicado); a rota faz checagem de path traversal comparando `os.path.abspath`.
-- `main.py` e `app/__init__.py` estão vazios — o ponto de entrada real é `app/server.py` (bloco `if __name__ == "__main__":`).
+- `main.py` é o ponto de entrada: importa `WebApp` de `app/server.py` e sobe o servidor com `make_server` (bloco `if __name__ == "__main__":`). `app/__init__.py` está vazio, mas é necessário para marcar `app/` como pacote Python (permite o `from app.server import WebApp`).
 
 ### Estado em memória
 
@@ -31,7 +31,9 @@ Não há sistema de build, bundler ou dependências de frontend — tudo é HTML
 O `README.md` é a especificação de comportamento esperado das rotas — consulte-o antes de alterar qualquer rota, pois define códigos de status HTTP esperados (`401`, `409`, `302`, `404`) e regras de cookie (`HttpOnly`, `Path=/`, `SameSite=Strict`, expiração de sessão em 30 minutos).
 
 Estado atual da implementação em `app/server.py` (ainda incompleto em relação ao README):
-- O cookie de sessão (`sessionId`) ainda não é criado/lido em nenhuma rota — login bem-sucedido apenas redireciona para `/dashboard` sem estabelecer sessão.
-- `/dashboard` e `/admin` ainda não verificam autenticação nem usam `self.sessions_db`.
+- Login bem-sucedido **cria** a sessão (`_create_session`: gera `sessionId` com `secrets.token_hex`, registra `email`/`createdAt`/`views` em `self.sessions_db`) e emite o cookie `sessionId` (`HttpOnly`, `Path=/`, `SameSite=Strict`) no redirect `302` para `/dashboard`.
+- O cookie de sessão ainda **não é lido** em nenhuma rota — nada consome `HTTP_COOKIE` para recuperar a sessão atual.
+- `/dashboard` e `/admin` renderizam seus templates, mas ainda **não verificam autenticação** nem usam `self.sessions_db` (qualquer um acessa, sem checar o cookie).
+- Ainda não há verificação de expiração de sessão (30 minutos).
 - `handle_logout_post` é um stub (`pass`) — ainda não invalida sessão nem expira o cookie.
-- Ao implementar essas partes, siga o padrão já usado nos outros handlers (helpers `_send_reply`, `_redirect`, `_render_template`, `_parse_form`).
+- Ao implementar essas partes, siga o padrão já usado nos outros handlers (helpers `_send_reply`, `_redirect` (aceita `extra_headers`), `_render_template`, `_parse_form`, `_create_session`).
