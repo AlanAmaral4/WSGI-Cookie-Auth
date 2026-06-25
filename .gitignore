@@ -14,3 +14,7 @@ env/
 # IDEs
 .vscode/
 .idea/
+
+# Claude Code (pessoal/local)
+CLAUDE.local.md
+.claude/settings.local.json
