@@ -5,6 +5,7 @@ import hashlib
 import os
 import hmac
 import re
+import secrets
 from datetime import datetime
 
 
@@ -104,12 +105,30 @@ class WebApp:
         start_response(status, [("Content-Type", "text/html; charset=utf-8")])
         return [text_html.encode("utf-8")]
 
-    def _redirect(self, start_response, location):
+    def _redirect(self, start_response, location, extra_headers=None):
         """
         Método auxiliar para realizar um redirecionamento HTTP (Status 302 Found).
+        Aceita cabeçalhos extras (ex.: Set-Cookie) que serão enviados junto.
         """
-        start_response("302 Found", [("Location", location)])
+        headers = [("Location", location)]
+        if extra_headers:
+            headers.extend(extra_headers)
+        start_response("302 Found", headers)
         return [b""]
+    
+    def _create_session(self, email):
+        """
+        Cria uma nova sessão em memória para o usuário e devolve o cabeçalho
+        Set-Cookie pronto para ser enviado na resposta.
+        """
+        session_id = secrets.token_hex(32)
+        self.sessions_db[session_id] = {
+            "email": email,
+            "createdAt": datetime.now(),
+            "views": 0,
+        }
+        cookie = f"sessionId={session_id}; HttpOnly; Path=/; SameSite=Strict"
+        return ("Set-Cookie", cookie)
 
     def _render_template(
         self, start_response, template_name, context=None, status="200 OK"
@@ -140,10 +159,7 @@ class WebApp:
         """
         Renderiza e retorna a página inicial do site.
         """
-        return self._render_template(
-            start_response,
-            "index.html",
-        )
+        return self._render_template(start_response, "index.html")
 
     def render_login_get(self, environ, start_response):
         """
@@ -161,16 +177,18 @@ class WebApp:
 
         user = self.users_db.get(email)
         if user:
-            computed_hash = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), user["salt"], 100000)
+            computed_hash = hashlib.pbkdf2_hmac(
+                "sha512", password.encode("utf-8"), user["salt"], 100000
+            )
             # função segura que previne time attacks
             if hmac.compare_digest(computed_hash, user["hash"]):
-                return self._redirect(start_response, "/dashboard")
-        
-        context = {
-            "error": "E-mail ou senha inválidos.",
-            "email": email
-        }
-        return self._render_template(start_response, "login.html", context, status="401 Unauthorized")
+                cookie_header = self._create_session(email)
+                return self._redirect(start_response, "/dashboard", extra_headers=[cookie_header])
+
+        context = {"error": "E-mail ou senha inválidos.", "email": email}
+        return self._render_template(
+            start_response, "login.html", context, status="401 Unauthorized"
+        )
 
     def render_register_get(self, environ, start_response):
         """
@@ -180,7 +198,8 @@ class WebApp:
 
     def handle_register_post(self, environ, start_response):
         """
-        Processa os dados de criação de conta enviados pelo usuário via método POST."""
+        Processa os dados de criação de conta enviados pelo usuário via método POST.
+        """
         form_data = self._parse_form(environ)
 
         email = form_data.get("email", [""])[0].strip()
@@ -201,20 +220,20 @@ class WebApp:
 
         context = {"success": "Conta criada com sucesso! Você já pode fazer login."}
         return self._render_template(
-            start_response, "register.html", context, status="201 Created"
+            start_response, "login.html", context, status="201 Created"
         )
 
     def render_dashboard(self, environ, start_response):
         """
         Exibe a página restrita do painel de controle (dashboard).
         """
-        return self._send_reply(start_response, "<h1>Página do Dashboard</h1>")
+        return self._render_template(start_response, "dashboard.html")
 
     def render_admin(self, environ, start_response):
         """
         Exibe a página do painel de administração.
         """
-        return self._send_reply(start_response, "<h1>Página de Admin</h1>")
+        return self._render_template(start_response, "admin.html")
 
     def handle_logout_post(self, environ, start_response):
         """

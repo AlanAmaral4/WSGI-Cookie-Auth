@@ -33,10 +33,6 @@
                 <p style="color: red; text-align: center;">{{ error }}</p>
                 {% endif %}
 
-                {% if success %}
-                <p style="color: green; text-align: center;">{{ success }}</p>
-                {% endif %}
-
                 <div class="div_form">
                     <label for="email">E-mail:</label>
                     <input type="email" name="email" id="email" required value="{{ email }}" {% if error %}
