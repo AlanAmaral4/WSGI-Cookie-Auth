@@ -1,4 +1,3 @@
-from wsgiref.simple_server import make_server
 from jinja2 import Environment, FileSystemLoader
 import urllib.parse
 import hashlib
@@ -248,10 +247,3 @@ class WebApp:
         return self._send_reply(
             start_response, "<h1>Erro 404 - Não Encontrado</h1>", "404 Not Found"
         )
-
-
-if __name__ == "__main__":
-    app = WebApp()
-    server = make_server("localhost", 8000, app)
-    print("Servidor rodando em http://localhost:8000 ...")
-    server.serve_forever()
