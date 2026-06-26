@@ -182,7 +182,9 @@ class WebApp:
             # função segura que previne time attacks
             if hmac.compare_digest(computed_hash, user["hash"]):
                 cookie_header = self._create_session(email)
-                return self._redirect(start_response, "/dashboard", extra_headers=[cookie_header])
+                return self._redirect(
+                    start_response, "/dashboard", extra_headers=[cookie_header]
+                )
 
         context = {"error": "E-mail ou senha inválidos.", "email": email}
         return self._render_template(
@@ -226,7 +228,8 @@ class WebApp:
         """
         Exibe a página restrita do painel de controle (dashboard).
         """
-        return self._render_template(start_response, "dashboard.html")
+        context = {}
+        return self._render_template(start_response, "dashboard.html", context)
 
     def render_admin(self, environ, start_response):
         """
