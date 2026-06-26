@@ -6,6 +6,15 @@
         color: inherit;
         font-size: 25px;
     }
+
+    & .form-sair {
+        display: contents;
+
+        & button {
+            width: auto;
+            margin-bottom: 0;
+        }
+    }
 }
 
 .auth-container {

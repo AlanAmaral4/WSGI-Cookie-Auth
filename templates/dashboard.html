@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="/static/styles/style.css">
+    <title>Dashboard</title>
+</head>
+
+<body>
+    <header class="cabecalho">
+        <nav class="container">
+            <ul>
+                <li>
+                    <h1><strong><a href="/" class="titulo">🍪 Webdev Cookie</a></strong></h1>
+                </li>
+            </ul>
+            <ul>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/admin">Admin</a></li>
+                <li>
+                    <form action="/logout" method="POST" class="form-sair">
+                        <button type="submit" class="outline">Sair</button>
+                    </form>
+                </li>
+                <li>
+                    <button class="tema" id="theme-switch">Dark/Light</button>
+                </li>
+            </ul>
+        </nav>
+    </header>
+    <main class="container">
+        <article>
+            <h2>Seu painel</h2>
+            <p>Você está autenticado como: <strong>{{ email }}</strong></p>
+
+            <div class="grid">
+                <div>
+                    <hgroup>
+                        <h3>{{ views }}</h3>
+                        <p>Acessos nesta sessão</p>
+                    </hgroup>
+                </div>
+                <div>
+                    <hgroup>
+                        <h3>{{ created_at.strftime('%H:%M') }}</h3>
+                        <p>Sessão iniciada às</p>
+                    </hgroup>
+                </div>
+            </div>
+        </article>
+    </main>
+    <script>
+        const switchBtn = document.getElementById('theme-switch');
+        const docRoot = document.documentElement;
+
+        const prefferedTheme = localStorage.getItem('theme');
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const defaultTheme = prefferedTheme || (systemDark ? 'dark' : 'light');
+
+        docRoot.setAttribute('data-theme', defaultTheme);
+
+        switchBtn.addEventListener('click', () => {
+            const current = docRoot.getAttribute('data-theme');
+            const toggled = current === 'dark' ? 'light' : 'dark';
+            docRoot.setAttribute('data-theme', toggled);
+            localStorage.setItem('theme', toggled);
+        });
+    </script>
+</body>
+
+</html>
