@@ -19,7 +19,7 @@
             </ul>
             <ul>
                 <li>
-                    <button class="tema" id="theme-switch">Dark/Light</button>
+                    <button id="theme-switch">Dark/Light</button>
                 </li>
             </ul>
         </nav>
@@ -39,13 +39,12 @@
 
                 <div class="div_form">
                     <label for="email">E-mail:</label>
-                    <input type="email" name="email" id="email" required
-                        value="{{ email }}" {% if error %} aria-invalid="true" {% endif %}>
+                    <input type="email" name="email" id="email" required value="{{ email }}" {% if error %}
+                        aria-invalid="true" {% endif %}>
                 </div>
                 <div class="div_form">
                     <label for="password">Senha:</label>
-                    <input type="password" name="password" required {% if error %} aria-invalid="true"
-                        {% endif %}>
+                    <input type="password" name="password" required {% if error %} aria-invalid="true" {% endif %}>
                 </div>
                 <button type="submit">Entrar</button>
                 <p class="cadastro">Não tem conta? <a href="/register">Cadastre-se</a></p>
@@ -59,7 +58,7 @@
         const prefferedTheme = localStorage.getItem('theme');
         const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const defaultTheme = prefferedTheme || (systemDark ? 'dark' : 'light');
-        
+
         docRoot.setAttribute('data-theme', defaultTheme);
 
         switchBtn.addEventListener('click', () => {
