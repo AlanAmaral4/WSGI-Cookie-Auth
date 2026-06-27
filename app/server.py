@@ -183,7 +183,7 @@ class WebApp:
         context = {}
         if session:
             context = {"email": session["email"]}
-        
+
         return self._render_template(start_response, "index.html", context)
 
     def render_login_get(self, environ, start_response):
@@ -274,11 +274,8 @@ class WebApp:
         _, session = self._get_session(environ)
         if session is None:
             return self._redirect(start_response, "/login")
-        
-        context = {
-            "users": list(self.users_db.keys()),
-            "sessions": self.sessions_db
-        }
+
+        context = {"users": list(self.users_db.keys()), "sessions": self.sessions_db}
         return self._render_template(start_response, "admin.html", context)
 
     def handle_logout_post(self, environ, start_response):
@@ -288,8 +285,11 @@ class WebApp:
         session_id, _ = self._get_session(environ)
         if session_id:
             del self.sessions_db[session_id]
-        
-        expired_cookie = ("Set-Cookie", "sessionId=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0")
+
+        expired_cookie = (
+            "Set-Cookie",
+            "sessionId=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0",
+        )
         return self._redirect(start_response, "/", extra_headers=[expired_cookie])
 
     def render_404(self, environ, start_response):
