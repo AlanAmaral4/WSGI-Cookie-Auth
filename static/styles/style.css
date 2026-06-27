@@ -7,13 +7,10 @@
         font-size: 25px;
     }
 
-    & .form-sair {
-        display: contents;
-
-        & button {
-            width: auto;
-            margin-bottom: 0;
-        }
+    & button {
+        width: auto;
+        margin-bottom: 0;
+        padding: calc(var(--pico-nav-link-spacing-vertical) - var(--pico-border-width) * 2) var(--pico-nav-link-spacing-horizontal);
     }
 }
 
