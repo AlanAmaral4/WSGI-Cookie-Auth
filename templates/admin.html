@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="/static/styles/style.css">
+    <title>Admin</title>
+</head>
+
+<body>
+    <header class="cabecalho">
+        <nav class="container">
+            <ul>
+                <li>
+                    <h1><strong><a href="/" class="titulo">🍪 Webdev Cookie</a></strong></h1>
+                </li>
+            </ul>
+            <ul>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/admin">Admin</a></li>
+                <li>
+                    <form action="/logout" method="POST" class="form-sair">
+                        <button type="submit" class="outline">Sair</button>
+                    </form>
+                </li>
+                <li>
+                    <button id="theme-switch">Dark/Light</button>
+                </li>
+            </ul>
+        </nav>
+    </header>
+    <main class="container">
+        <h2>Usuários</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>E-mail</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for email in users %}
+                <tr>
+                    <td>{{ email }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>Sessões</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>E-mail</th>
+                    <th>Criada em</th>
+                    <th>Acessos</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session_id, data in sessions.items() %}
+                <tr>
+                    <td>{{ data.email }}</td>
+                    <td>{{ data.createdAt.strftime('%d/%m %H:%M') }}</td>
+                    <td>{{ data.views }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+    <script>
+        const switchBtn = document.getElementById('theme-switch');
+        const docRoot = document.documentElement;
+
+        const prefferedTheme = localStorage.getItem('theme');
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const defaultTheme = prefferedTheme || (systemDark ? 'dark' : 'light');
+
+        docRoot.setAttribute('data-theme', defaultTheme);
+
+        switchBtn.addEventListener('click', () => {
+            const current = docRoot.getAttribute('data-theme');
+            const toggled = current === 'dark' ? 'light' : 'dark';
+            docRoot.setAttribute('data-theme', toggled);
+            localStorage.setItem('theme', toggled);
+        });
+    </script>
+</body>
+
+</html>

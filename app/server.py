@@ -5,7 +5,8 @@ import os
 import hmac
 import re
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
+from http.cookies import SimpleCookie
 
 
 class WebApp:
@@ -114,7 +115,7 @@ class WebApp:
             headers.extend(extra_headers)
         start_response("302 Found", headers)
         return [b""]
-    
+
     def _create_session(self, email):
         """
         Cria uma nova sessão em memória para o usuário e devolve o cabeçalho
@@ -128,6 +129,26 @@ class WebApp:
         }
         cookie = f"sessionId={session_id}; HttpOnly; Path=/; SameSite=Strict"
         return ("Set-Cookie", cookie)
+
+    def _get_session(self, environ):
+        """
+        Recupera a sessão ativa a partir do cookie 'sessionId' da requisição.
+        """
+        cookie_header = environ.get("HTTP_COOKIE", "")
+        cookies = SimpleCookie(cookie_header)
+        if "sessionId" not in cookies:
+            return None, None
+
+        session_id = cookies["sessionId"].value
+        session = self.sessions_db.get(session_id)
+        if session is None:
+            return None, None
+
+        if (datetime.now() - session["createdAt"]) > timedelta(minutes=30):
+            del self.sessions_db[session_id]
+            return None, None
+
+        return session_id, session
 
     def _render_template(
         self, start_response, template_name, context=None, status="200 OK"
@@ -158,7 +179,12 @@ class WebApp:
         """
         Renderiza e retorna a página inicial do site.
         """
-        return self._render_template(start_response, "index.html")
+        _, session = self._get_session(environ)
+        context = {}
+        if session:
+            context = {"email": session["email"]}
+        
+        return self._render_template(start_response, "index.html", context)
 
     def render_login_get(self, environ, start_response):
         """
@@ -228,20 +254,43 @@ class WebApp:
         """
         Exibe a página restrita do painel de controle (dashboard).
         """
-        context = {}
+        _, session = self._get_session(environ)
+        if session is None:
+            return self._redirect(start_response, "/login")
+
+        session["views"] += 1
+
+        context = {
+            "email": session["email"],
+            "views": session["views"],
+            "createdAt": session["createdAt"],
+        }
         return self._render_template(start_response, "dashboard.html", context)
 
     def render_admin(self, environ, start_response):
         """
         Exibe a página do painel de administração.
         """
-        return self._render_template(start_response, "admin.html")
+        _, session = self._get_session(environ)
+        if session is None:
+            return self._redirect(start_response, "/login")
+        
+        context = {
+            "users": list(self.users_db.keys()),
+            "sessions": self.sessions_db
+        }
+        return self._render_template(start_response, "admin.html", context)
 
     def handle_logout_post(self, environ, start_response):
         """
         Processa a requisição de saída (logout) do usuário, encerrando a sessão.
         """
-        pass
+        session_id, _ = self._get_session(environ)
+        if session_id:
+            del self.sessions_db[session_id]
+        
+        expired_cookie = ("Set-Cookie", "sessionId=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0")
+        return self._redirect(start_response, "/", extra_headers=[expired_cookie])
 
     def render_404(self, environ, start_response):
         """
