@@ -30,10 +30,11 @@ Não há sistema de build, bundler ou dependências de frontend — tudo é HTML
 
 O `README.md` é a especificação de comportamento esperado das rotas — consulte-o antes de alterar qualquer rota, pois define códigos de status HTTP esperados (`401`, `409`, `302`, `404`) e regras de cookie (`HttpOnly`, `Path=/`, `SameSite=Strict`, expiração de sessão em 30 minutos).
 
-Estado atual da implementação em `app/server.py` (ainda incompleto em relação ao README):
-- Login bem-sucedido **cria** a sessão (`_create_session`: gera `sessionId` com `secrets.token_hex`, registra `email`/`createdAt`/`views` em `self.sessions_db`) e emite o cookie `sessionId` (`HttpOnly`, `Path=/`, `SameSite=Strict`) no redirect `302` para `/dashboard`.
-- O cookie de sessão ainda **não é lido** em nenhuma rota — nada consome `HTTP_COOKIE` para recuperar a sessão atual.
-- `/dashboard` e `/admin` renderizam seus templates, mas ainda **não verificam autenticação** nem usam `self.sessions_db` (qualquer um acessa, sem checar o cookie).
-- Ainda não há verificação de expiração de sessão (30 minutos).
-- `handle_logout_post` é um stub (`pass`) — ainda não invalida sessão nem expira o cookie.
-- Ao implementar essas partes, siga o padrão já usado nos outros handlers (helpers `_send_reply`, `_redirect` (aceita `extra_headers`), `_render_template`, `_parse_form`, `_create_session`).
+Estado atual da implementação em `app/server.py` (o contrato do README já está implementado):
+- Login bem-sucedido **cria** a sessão (`_create_session`: gera `sessionId` com `secrets.token_hex(32)`, registra `email`/`createdAt`/`views` em `self.sessions_db`) e emite o cookie `sessionId` (`HttpOnly`, `Path=/`, `SameSite=Strict`) no redirect `302` para `/dashboard`. Credenciais inválidas re-renderizam `login.html` com status `401`.
+- O cookie é **lido** por `_get_session`, que faz parsing de `HTTP_COOKIE` com `SimpleCookie`, busca a sessão em `self.sessions_db` e valida a expiração; retorna a tupla `(session_id, session)` ou `(None, None)`.
+- Expiração de sessão (30 minutos) é checada de forma *lazy* dentro de `_get_session` (`datetime.now() - session["createdAt"] > timedelta(minutes=30)`): ao acessar uma sessão expirada, ela é removida de `self.sessions_db` e tratada como inexistente.
+- `/dashboard` e `/admin` são **protegidas** via `_get_session`: redirecionam (`302`) para `/login` quando não há sessão válida. `/dashboard` incrementa `session["views"]` a cada acesso; `/admin` lista usuários e sessões em memória. `/` (`render_home`) também consulta a sessão para alternar entre links públicos e privados.
+- `handle_logout_post` invalida a sessão (`del self.sessions_db[session_id]`) e expira o cookie no cliente (`Set-Cookie` com `Max-Age=0`), redirecionando para `/`.
+- Cadastro (`handle_register_post`): retorna `409` quando o e-mail já existe; no sucesso grava `salt`/`hash` e re-renderiza `login.html` com status `201`.
+- Ao alterar ou adicionar rotas, siga o padrão já usado nos handlers (helpers `_send_reply`, `_redirect` (aceita `extra_headers`), `_render_template`, `_parse_form`, `_create_session`, `_get_session`).
