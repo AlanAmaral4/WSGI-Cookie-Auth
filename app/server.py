@@ -39,6 +39,11 @@ class WebApp:
         elif path.startswith("/static") and method == "GET":
             return self.static_server(environ, start_response)
 
+        # Favicon
+        elif path == "/favicon.ico" and method == "GET":
+            environ["PATH_INFO"] = "/static/img/biscoito.png"
+            return self.static_server(environ, start_response)
+
         # Login
         elif path == "/login" and method == "GET":
             return self.render_login_get(environ, start_response)
