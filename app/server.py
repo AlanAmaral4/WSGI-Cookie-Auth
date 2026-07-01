@@ -238,7 +238,7 @@ class WebApp:
         password = form_data.get("password", [""])[0]
 
         if email in self.users_db:
-            context = {"error": "Este e-mail já está cadastrado.", "email": email}
+            context = {"error": "Erro ao registrar.", "email": email}
             return self._render_template(
                 start_response, "register.html", context, status="409 Conflict"
             )
