@@ -18,3 +18,9 @@ env/
 # Claude Code (pessoal/local)
 CLAUDE.local.md
 .claude/settings.local.json
+
+
+/test
+/spec
+ESPECIFICACAO_DIFF.md
+ANALISE.md
